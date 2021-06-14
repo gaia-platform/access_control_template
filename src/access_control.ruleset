@@ -1,0 +1,257 @@
+#include "gaia/logger.hpp"
+
+#include "actions.hpp"
+#include "enums.hpp"
+#include "gaia_access_control.h"
+#include "helpers.hpp"
+
+using namespace gaia::access_control;
+
+// Here we define our declarative rules
+//
+ruleset access_control_ruleset
+{
+    OnInsert(scan)
+    {
+        // A new scan is added
+        //
+        // Reacts to:
+        //      new scan record
+        // Changes:
+        //      scan.badge_scan
+        //      scan.vehicle_entering
+        //      scan.vehicle_departing
+        //      scan.joining_wifi
+        //      scan.leaving_wifi
+        //      scan.face_scan
+        //      scan.leaving
+        //      person.face_signature
+        //      person.stranger
+        //      vehicle.license
+        //      vehicle.vehicle_owner
+        // Creates:
+        //      person
+        //      vehicle
+        //
+        auto scan_row = scan_t::get(scan.gaia_id());
+        if (!scan_row.seen_who_person() && !scan_row.seen_license_vehicle())
+        {
+            auto stranger_row = helpers::insert_stranger(scan.face_signature);
+
+            if (scan.scan_type == enums::scan_table::e_scan_type::vehicle_entering)
+            {
+                helpers::insert_stranger_vehicle(stranger_row, scan.license);
+            }
+            actions::stranger_detected();
+        }
+        else
+        {
+            using namespace enums::scan_table;
+            switch (scan.scan_type)
+            {
+                case e_scan_type::badge             : scan.badge_scan = true;           break;
+                case e_scan_type::vehicle_entering  : scan.vehicle_entering = true;     break;
+                case e_scan_type::vehicle_departing : scan.vehicle_departing = true;    break;
+                case e_scan_type::joining_wifi      : scan.joining_wifi = true;         break;
+                case e_scan_type::leaving_wifi      : scan.leaving_wifi = true;         break;
+                case e_scan_type::face              : scan.face_scan = true;            break;
+                case e_scan_type::leaving           : scan.leaving = true;              break;
+            }
+        }
+    }
+
+    {
+        // Check if non-stranger switped badge
+        //
+        // Reacts to:
+        //      scan.badge_scan
+        // Changes:
+        //      person.badged
+        //
+        if (@badge_scan && !stranger)
+        {
+            badged = true;
+        }
+    }
+
+    {
+        // Check if someone is joining wifi network
+        //
+        // Reacts to:
+        //      scan.joining_wifi
+        // Changes:
+        //      person.on_wifi
+        //
+        if (@joining_wifi)
+        {
+            person.on_wifi = true;
+        }
+    }
+
+    {
+        // Check if someone is leaving wifi network
+        //
+        // Reacts to:
+        //      scan.leaving_wifi
+        // Changes:
+        //      person.on_wifi
+        //
+        if (@leaving_wifi)
+        {
+            person.on_wifi = false;
+        }
+    }
+
+    {
+        // Check if vehicle is parking
+        //
+        // Reacts to:
+        //      scan.vehicle_entering
+        // Changes:
+        //      person.parked
+        //
+        if (@vehicle_entering)
+        {
+            person.parked = true;
+        }
+    }
+
+    {
+        // Check if vehicle is departing
+        //
+        // Reacts to:
+        //      scan.vehicle_departing
+        // Changes:
+        //      person.parked
+        //
+        if (@scan.vehicle_departing)
+        {
+		    person.parked = false;
+        }
+    }
+
+    {
+        // Rule for face scans - uncredentialed.
+        //
+        // Reacts to:
+        //      scan.face_scan
+        //
+        if (@scan.face_scan && !person.credentialed)
+        {
+            actions::base_credentials_required(person.person_id);
+        }
+    }
+
+    {
+        // Rule for authenticating and authorizing
+        //
+        // Reacts to: 
+        //      person.badged
+        //      person.parked
+        //      person.on_wifi
+        // Changes: 
+        //      person.credentialed
+        //      person.admissible
+        //
+        if (@badged || @parked || @on_wifi)
+        {
+            person.credentialed = true;
+            if (helpers::time_is_between(helpers::get_time_now(),
+                entry_time, leave_time))
+            {
+                person.admissible = true;
+            }
+        }
+    }
+
+    {
+        // Rule for face scans - credentialed, admissible, and employee entry cases.
+        //
+        // Reacts to: 
+        //      scan.face_scan
+        // Changes: 
+        //      person.entered
+        //      person.inside
+        //
+        if (@scan.face_scan && employee && credentialed && admissible)
+        {
+            helpers::let_them_in(person.gaia_id(), scan.gaia_id());
+        }
+    }
+
+    {
+        // Rule for face scans - visitor entering a building or a room.
+        //
+        // Reacts to: 
+        //      scan.face_scan
+        // Changes: 
+        //      person.entered
+        //      person.inside
+        //
+        if (@scan.face_scan && visitor && credentialed && admissible)
+        {
+            // Check to see if the scanned visitor has a scheuled event before
+            // letting them enter a room or the building.
+            if (helpers::person_has_event_now(person.gaia_id(),
+                                              scan_t::get(scan.gaia_id()).seen_in_room()))
+            {
+                helpers::let_them_in(person.gaia_id(), scan.gaia_id());
+                return;
+            }
+            
+            if (scan_t::get(scan.gaia_id()).seen_in_room())
+            {
+                actions::not_this_room(person.person_id, room.name, building.name);
+            }
+            else
+            {
+                actions::not_this_building(person.person_id, building.name);
+            }
+        }
+    }
+
+    {
+        // Rule for face scans - credentialed but inadmissible.
+        //
+        // Reacts to: 
+        //      scan.face_scan
+        //
+        if (@scan.face_scan && person.credentialed && !person.admissible)
+        {
+            if (scan_t::get(scan.gaia_id()).seen_in_room())
+            {
+                actions::no_entry_right_now(person.person_id, room.name, building.name);
+            }
+            else
+            {
+                actions::not_this_building(person.person_id, building.name);
+            }
+        }
+    }
+
+    {
+        // Rule for leaving scan - person leaving a building or a room.
+        //
+        // Reacts to: 
+        //      scan.leaving
+        // Changes: 
+        //      person.entered
+        //      person.inside
+        //
+        if (@scan.leaving)
+        {
+            auto seen_person = scan_t::get(scan.gaia_id()).seen_who_person();
+
+            if (seen_person.inside_room())
+            {
+                helpers::disconnect_person_from_room(seen_person.gaia_id());
+            }
+            else{
+                person.badged = false;
+                person.credentialed = false;
+                person.admissible = false;
+                helpers::disconnect_person_from_building(seen_person.gaia_id());
+            }
+	    }
+    }
+}
