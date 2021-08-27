@@ -12,15 +12,15 @@ void helpers::park_in_building(
     auto person = gaia::access_control::person_t::get(person_id);
     auto building = gaia::access_control::building_t::get(building_id);
 
-    person.registered_registration_list();
+    person.registrations();
 
-    building.parked_in_person_list().insert(person);
+    building.parked_people().insert(person);
 }
 
 bool helpers::person_has_registrations(gaia::common::gaia_id_t person_id)
 {
     auto person = gaia::access_control::person_t::get(person_id);
-    auto registration_list = person.registered_registration_list();
+    auto registration_list = person.registrations();
 
     return (registration_list.begin() != registration_list.end());
 }
@@ -29,9 +29,9 @@ bool helpers::person_has_event_now(gaia::common::gaia_id_t person_id)
 {
     auto person = gaia::access_control::person_t::get(person_id);
 
-    for(auto registration : person.registered_registration_list())
+    for(auto registration : person.registrations())
     {
-        auto event = registration.occasion_event();
+        auto event = registration.occasion();
         if (event && time_is_between(get_time_now(),
             event.start_timestamp(), event.end_timestamp()))
         {
@@ -47,9 +47,9 @@ bool helpers::person_has_event_now(
 {
     auto person = gaia::access_control::person_t::get(person_id);
 
-    for(auto registration : person.registered_registration_list())
+    for(auto registration : person.registrations())
     {
-        auto event = registration.occasion_event();
+        auto event = registration.occasion();
         if((!room || room == event.held_in_room())
             && event && time_is_between(get_time_now(),
             event.start_timestamp(), event.end_timestamp()))
@@ -74,24 +74,24 @@ void helpers::allow_person_into_room(
 
     auto person = gaia::access_control::person_t::get(person_id);
     // Connect permitted_room to person.
-    person.permittee_permitted_room_list().insert(permitted_room);
+    person.permitted_in().insert(permitted_room);
     // Connect permitted_room to room.
-    room.allowed_in_permitted_room_list().insert(permitted_room);
+    room.permissions().insert(permitted_room);
 }
 
 void helpers::disconnect_parked_buildings(gaia::access_control::vehicle_t vehicle)
 {
-    auto vehicle_owner = vehicle.vehicle_owner_person();
-    auto parking_building = vehicle_owner.parked_in_building();
+    auto vehicle_owner = vehicle.owner();
+    auto parking_building = vehicle_owner.parked_in();
 
-    parking_building.parked_in_person_list().remove(vehicle_owner);
+    parking_building.parked_people().remove(vehicle_owner);
 }
 
 void helpers::disconnect_person_from_room(gaia::common::gaia_id_t person_id)
 {
     auto person = gaia::access_control::person_t::get(person_id);
     if (person.inside_room()) {
-        person.inside_room().inside_person_list().remove(person);
+        person.inside_room().people_inside().remove(person);
     }
 }
 
@@ -99,7 +99,7 @@ void helpers::disconnect_person_from_building(gaia::common::gaia_id_t person_id)
 {
     auto person = gaia::access_control::person_t::get(person_id);
     if (person.entered_building()) {
-        person.entered_building().entered_person_list().remove(person);
+        person.entered_building().people_entered().remove(person);
     }
 }
 
@@ -107,12 +107,12 @@ void helpers::delete_their_room_permissions(gaia::common::gaia_id_t person_id)
 {
     auto person = gaia::access_control::person_t::get(person_id);
     std::vector<gaia::access_control::permitted_room_t> permitted_rooms;
-    for(auto permitted_room : person.permittee_permitted_room_list())
+    for(auto permitted_room : person.permitted_in())
     {
         permitted_rooms.push_back(permitted_room);
     }
 
-    person.permittee_permitted_room_list().clear();
+    person.permitted_in().clear();
     for(auto permitted_room : permitted_rooms)
     {
         permitted_room.delete_row();
@@ -129,11 +129,11 @@ void helpers::let_them_in(
     if (scan.seen_in_room())
     {
         disconnect_person_from_room(person_id);
-        scan.seen_in_room().inside_person_list().insert(person);
+        scan.seen_in_room().people_inside().insert(person);
     }
     if (scan.seen_at_building())
     {
-        scan.seen_at_building().entered_person_list().insert(person);
+        scan.seen_at_building().people_entered().insert(person);
     }
 }
 
@@ -152,7 +152,7 @@ void helpers::insert_stranger_vehicle(
     auto vehicle_w = gaia::access_control::vehicle_writer();
     vehicle_w.license = license;
     // Connect the vehicle to its owner, the stranger.
-    stranger.vehicle_owner_vehicle_list().insert(vehicle_w.insert_row());
+    stranger.vehicles().insert(vehicle_w.insert_row());
 }
 
 // Time-related helpers:

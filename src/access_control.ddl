@@ -76,7 +76,7 @@ create table if not exists event (
 
 create relationship if not exists event_held_in_room (
     room.events -> event[],
-    event.held_in -> room
+    event.held_in_room -> room
 );
 
 create table if not exists registration (
@@ -127,20 +127,20 @@ create table if not exists scan (
 
 create relationship if not exists scan_seen_at (
     building.scans -> scan[],
-    scan.seen_at -> building
+    scan.seen_at_building -> building
 );
 
 create relationship if not exists scan_seen_in (
     room.scans -> scan[],
-    scan.seen_in -> room
+    scan.seen_in_room -> room
 );
 
 create relationship if not exists scan_seen_who (
     person.scans -> scan[],
-    scan.seen_who -> person
+    scan.seen_who_person -> person
 );
 
 create relationship if not exists scan_seen_license (
     vehicle.scans -> scan[],
-    scan.seen_license -> vehicle
+    scan.seen_license_vehicle -> vehicle
 );

@@ -11,7 +11,7 @@ using namespace gaia::access_control;
 //
 ruleset access_control_ruleset
 {
-    OnInsert(scan)
+    on_insert(scan)
     {
         // A new scan is added
         //
@@ -49,13 +49,41 @@ ruleset access_control_ruleset
             using namespace enums::scan_table;
             switch (scan.scan_type)
             {
-                case e_scan_type::badge             : scan.badge_scan = true;           break;
-                case e_scan_type::vehicle_entering  : scan.vehicle_entering = true;     break;
-                case e_scan_type::vehicle_departing : scan.vehicle_departing = true;    break;
-                case e_scan_type::joining_wifi      : scan.joining_wifi = true;         break;
-                case e_scan_type::leaving_wifi      : scan.leaving_wifi = true;         break;
-                case e_scan_type::face              : scan.face_scan = true;            break;
-                case e_scan_type::leaving           : scan.leaving = true;              break;
+                case e_scan_type::badge:
+                {
+                    scan.badge_scan = true;
+                    break;
+                }
+                case e_scan_type::vehicle_entering:
+                {
+                    scan.vehicle_entering = true;
+                    break;
+                }
+                case e_scan_type::vehicle_departing:
+                {
+                    scan.vehicle_departing = true;
+                    break;
+                }
+                case e_scan_type::joining_wifi:
+                {
+                    scan.joining_wifi = true;
+                    break;
+                }
+                case e_scan_type::leaving_wifi:
+                {
+                    scan.leaving_wifi = true;
+                    break;
+                }
+                case e_scan_type::face:
+                {
+                    scan.face_scan = true;
+                    break;
+                }
+                case e_scan_type::leaving:
+                {
+                    scan.leaving = true;
+                    break;
+                }
             }
         }
     }

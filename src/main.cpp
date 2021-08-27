@@ -55,11 +55,11 @@ json get_person_json(person_t person)
     j["on_wifi"] = person.on_wifi();
 
     j["events"] = json::array();
-    for (auto reg_iter = person.registered_registration_list().begin();
-         reg_iter != person.registered_registration_list().end();
+    for (auto reg_iter = person.registrations().begin();
+         reg_iter != person.registrations().end();
          reg_iter++)
     {
-        j["events"].push_back(get_event_json(reg_iter->occasion_event()));
+        j["events"].push_back(get_event_json(reg_iter->occasion()));
     }
 
     if (person.inside_room())
@@ -79,8 +79,8 @@ json get_room_json(room_t room)
     j["capacity"] = room.capacity();
     j["people"] = json::array();
 
-    for (auto person_iter = room.inside_person_list().begin();
-         person_iter != room.inside_person_list().end();
+    for (auto person_iter = room.people_inside().begin();
+         person_iter != room.people_inside().end();
          person_iter++)
     {
         j["people"].push_back(get_person_json(*person_iter));
@@ -113,8 +113,8 @@ json get_building_json(building_t building)
 
     j["people"] = json::array();
 
-    for (auto person_iter = building.entered_person_list().begin();
-         person_iter != building.entered_person_list().end();
+    for (auto person_iter = building.people_entered().begin();
+         person_iter != building.people_entered().end();
          person_iter++)
     {
         if (!person_iter->inside_room()) {
@@ -175,7 +175,7 @@ registration_t add_registration(person_t person, event_t occasion)
     registration_t registration = registration_t::get(registration_t::insert_row("", 0));
 
     occasion.occasion_registration_list().insert(registration);
-    person.registered_registration_list().insert(registration);
+    person.registrations().insert(registration);
 
     return registration;
 }
@@ -251,24 +251,24 @@ void clear_all_tables()
     for (auto building = building_t::get_first(); building; building = building_t::get_first())
     {
         building.inside_room_list().clear();
-        building.parked_in_person_list().clear();
-        building.entered_person_list().clear();
+        building.parked_people().clear();
+        building.people_entered().clear();
         building.seen_at_scan_list().clear();
         building.delete_row();
     }
     for (auto room = room_t::get_first(); room; room = room_t::get_first())
     {
-        room.inside_person_list().clear();
-        room.allowed_in_permitted_room_list().clear();
+        room.people_inside().clear();
+        room.permissions().clear();
         room.held_in_event_list().clear();
         room.seen_in_scan_list().clear();
         room.delete_row();
     }
     for (auto person = person_t::get_first(); person; person = person_t::get_first())
     {
-        person.permittee_permitted_room_list().clear();
-        person.registered_registration_list().clear();
-        person.vehicle_owner_vehicle_list().clear();
+        person.permitted_in().clear();
+        person.registrations().clear();
+        person.vehicles().clear();
         person.seen_who_scan_list().clear();
         person.delete_row();
     }
