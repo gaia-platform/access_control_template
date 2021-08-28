@@ -15,7 +15,7 @@ create table if not exists room (
 
 create relationship if not exists rooms_inside_building (
     building.rooms -> room[],
-    room.inside -> building
+    room.building -> building
 );
 
 create table if not exists person (

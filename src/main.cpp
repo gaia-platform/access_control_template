@@ -87,8 +87,8 @@ json get_room_json(room_t room)
     }
 
     j["events"] = json::array();
-    for (auto event_iter = room.held_in_event_list().begin();
-         event_iter != room.held_in_event_list().end();
+    for (auto event_iter = room.events().begin();
+         event_iter != room.events().end();
          event_iter++)
     {
         j["events"].push_back(get_event_json(*event_iter));
@@ -104,8 +104,8 @@ json get_building_json(building_t building)
     j["building_id"] = building.building_id();
     j["name"] = building.name();
     j["rooms"] = json::array();
-    for (auto room_iter = building.inside_room_list().begin();
-         room_iter != building.inside_room_list().end();
+    for (auto room_iter = building.rooms().begin();
+         room_iter != building.rooms().end();
          room_iter++)
     {
         j["rooms"].push_back(get_room_json(*room_iter));
@@ -165,7 +165,7 @@ event_t add_event(std::string name, uint64_t start_timestamp,
     event_w.end_timestamp = end_timestamp;
     event_t new_event = event_t::get(event_w.insert_row());
 
-    room.held_in_event_list().insert(new_event);
+    room.events().insert(new_event);
 
     return new_event;
 }
@@ -174,7 +174,7 @@ registration_t add_registration(person_t person, event_t occasion)
 {
     registration_t registration = registration_t::get(registration_t::insert_row("", 0));
 
-    occasion.occasion_registration_list().insert(registration);
+    occasion.registrations().insert(registration);
     person.registrations().insert(registration);
 
     return registration;
@@ -190,7 +190,7 @@ room_t add_room(uint64_t room_id, std::string room_name,
     room_t new_room = room_t::get(room_w.insert_row());
 
     // Connect the room to the "headquarters" building
-    headquarters.inside_room_list().insert(new_room);
+    headquarters.rooms().insert(new_room);
 
     return new_room;
 }
@@ -248,51 +248,51 @@ void clear_all_tables()
 {
     using namespace gaia::access_control;
 
-    for (auto building = building_t::get_first(); building; building = building_t::get_first())
+    for (auto building = *building_t::list().begin(); building; building = *building_t::list().begin())
     {
-        building.inside_room_list().clear();
+        building.rooms().clear();
         building.parked_people().clear();
         building.people_entered().clear();
-        building.seen_at_scan_list().clear();
+        building.scans().clear();
         building.delete_row();
     }
-    for (auto room = room_t::get_first(); room; room = room_t::get_first())
+    for (auto room = *room_t::list().begin(); room; room = *room_t::list().begin())
     {
         room.people_inside().clear();
         room.permissions().clear();
-        room.held_in_event_list().clear();
-        room.seen_in_scan_list().clear();
+        room.events().clear();
+        room.scans().clear();
         room.delete_row();
     }
-    for (auto person = person_t::get_first(); person; person = person_t::get_first())
+    for (auto person = *person_t::list().begin(); person; person = *person_t::list().begin())
     {
         person.permitted_in().clear();
         person.registrations().clear();
         person.vehicles().clear();
-        person.seen_who_scan_list().clear();
+        person.scans().clear();
         person.delete_row();
     }
-    for (auto permitted_room = permitted_room_t::get_first(); permitted_room;
-         permitted_room = permitted_room_t::get_first())
+    for (auto permitted_room = *permitted_room_t::list().begin(); permitted_room;
+         permitted_room = *permitted_room_t::list().begin())
     {
         permitted_room.delete_row();
     }
-    for (auto event = event_t::get_first(); event; event = event_t::get_first())
+    for (auto event = *event_t::list().begin(); event; event = *event_t::list().begin())
     {
-        event.occasion_registration_list().clear();
+        event.registrations().clear();
         event.delete_row();
     }
-    for (auto registration = registration_t::get_first(); registration;
-         registration = registration_t::get_first())
+    for (auto registration = *registration_t::list().begin(); registration;
+         registration = *registration_t::list().begin())
     {
         registration.delete_row();
     }
-    for (auto vehicle = vehicle_t::get_first(); vehicle; vehicle = vehicle_t::get_first())
+    for (auto vehicle = *vehicle_t::list().begin(); vehicle; vehicle = *vehicle_t::list().begin())
     {
-        vehicle.seen_license_scan_list().clear();
+        vehicle.scans().clear();
         vehicle.delete_row();
     }
-    for (auto scan = scan_t::get_first(); scan; scan = scan_t::get_first())
+    for (auto scan = *scan_t::list().begin(); scan; scan = *scan_t::list().begin())
     {
         scan.delete_row();
     }
@@ -374,20 +374,20 @@ void add_scan(const json &j)
     person_t person;
     if (get_person(j["person_id"], person))
     {
-        person.seen_who_scan_list().insert(new_scan);
+        person.scans().insert(new_scan);
     }
 
     room_t room;
     if (!j["room_id"].is_null() && get_room(j["room_id"], room))
     {
-        room.seen_in_scan_list().insert(new_scan);
-        room.inside_building().seen_at_scan_list().insert(new_scan);
+        room.scans().insert(new_scan);
+        room.building().scans().insert(new_scan);
     }
 
     building_t building;
     if (!j["building_id"].is_null() && get_building(j["building_id"], building))
     {
-        building.seen_at_scan_list().insert(new_scan);
+        building.scans().insert(new_scan);
     }
 
     gaia::db::commit_transaction();

@@ -9,6 +9,10 @@ include(/opt/gaia/cmake/gaia.cmake)
 
 find_package(Threads REQUIRED)
 
+add_compile_options(-stdlib=libc++)
+add_link_options(-stdlib=libc++)
+add_compile_options(-g)
+
 # Generate C++ headers from the .ddl schema file.
 process_schema(DDL_FILE ${PROJECT_SOURCE_DIR}/src/access_control.ddl)
 
@@ -18,7 +22,6 @@ translate_ruleset(
     ${PROJECT_SOURCE_DIR}/src/access_control.ruleset
   CLANG_PARAMS
     -I ${PROJECT_SOURCE_DIR}/include
-    -I ${GENERATED_OUTPUTS}
 )
 
 add_executable(access_control
@@ -35,7 +38,7 @@ target_include_directories(access_control
   PUBLIC
     ${PROJECT_SOURCE_DIR}/include
   PRIVATE
-    /opt/gaia/include
+    ${GAIA_INC}
 )
 
 target_link_libraries(access_control
