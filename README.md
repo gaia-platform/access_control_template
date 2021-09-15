@@ -51,4 +51,4 @@ make -j$(nproc)
 
 If you changed the schema DDL, run `./rebuild.sh`. This will erase the data in the database, but it's necessary to sync the schema with the state of the database.
 
-If you have any questions or feedback please reach out to us at Gaia at [info@gaiaplatform.io](mailto:info@gaiaplatform.io) or directly to the author of this example at [steve@gaiaplatform.io](mailto:steve@gaiaplatform.io).
+If you have any questions or feedback please reach out to us at Gaia at [info@gaiaplatform.io](mailto:info@gaiaplatform.io).
