@@ -6,7 +6,7 @@ export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
 
 pkill gaia_db_server
-gaia_db_server --disable-persistence &
+gaia_db_server --persistence disabled &
 rm -rf build
 mkdir build
 cd build
