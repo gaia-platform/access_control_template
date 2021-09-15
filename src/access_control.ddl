@@ -1,3 +1,7 @@
+create database if not exists access_control;
+
+use access_control;
+
 create table if not exists building (
     building_id uint64,
     name string
@@ -6,9 +10,12 @@ create table if not exists building (
 create table if not exists room (
     room_id uint64,
     name string,
-    capacity uint32,
+    capacity uint32
+);
 
-    inside references building
+create relationship if not exists rooms_inside_building (
+    building.rooms -> room[],
+    room.building -> building
 );
 
 create table if not exists person (
@@ -28,39 +35,63 @@ create table if not exists person (
     on_wifi bool,
 
     entry_time uint64,
-    leave_time uint64,
+    leave_time uint64
+);
 
-    parked_in references building,
+create relationship if not exists person_parked_in_building (
+    building.parked_people -> person[],
+    person.parked_in -> building
+);
 
-    entered references building,
-    
-    inside references room
+create relationship if not exists person_entered_building (
+    building.people_entered -> person[],
+    person.entered_building -> building
+);
+
+create relationship if not exists person_inside_room (
+    room.people_inside -> person[],
+    person.inside_room -> room
 );
 
 create table if not exists permitted_room (
-    permitted_room_id uint64,
+    permitted_room_id uint64
+);
 
-    permittee references person,
+create relationship if not exists permitted_room_permittee (
+    person.permitted_in -> permitted_room[],
+    permitted_room.permittee -> person
+);
 
-    allowed_in references room
+create relationship if not exists permitted_room_allowed_in (
+    room.permissions -> permitted_room[],
+    permitted_room.allowed_in -> room
 );
 
 create table if not exists event (
     event_id string,
     name string,
     start_timestamp uint64,
-    end_timestamp uint64,
+    end_timestamp uint64
+);
 
-    held_in references room
+create relationship if not exists event_held_in_room (
+    room.events -> event[],
+    event.held_in_room -> room
 );
 
 create table if not exists registration (
     registration_id string,
-    timestamp uint64,
+    timestamp uint64
+);
 
-    registered references person,
+create relationship if not exists person_registration (
+    person.registrations -> registration[],
+    registration.registered -> person
+);
 
-    occasion references event
+create relationship if not exists event_registration (
+    event.registrations -> registration[],
+    registration.occasion -> event
 );
 
 create table if not exists vehicle (
@@ -70,9 +101,12 @@ create table if not exists vehicle (
     year string,
     license_state string,
     license string,
-    parked_time uint64,
+    parked_time uint64
+);
 
-    vehicle_owner references person
+create relationship if not exists vehicle_owner (
+    person.vehicles -> vehicle[],
+    vehicle.owner -> person
 );
 
 create table if not exists scan (
@@ -88,13 +122,25 @@ create table if not exists scan (
     badge_id string,
     face_signature string,
     license string,
-    timestamp uint64,
+    timestamp uint64
+);
 
-    seen_at references building,
+create relationship if not exists scan_seen_at (
+    building.scans -> scan[],
+    scan.seen_at_building -> building
+);
 
-    seen_in references room,
+create relationship if not exists scan_seen_in (
+    room.scans -> scan[],
+    scan.seen_in_room -> room
+);
 
-    seen_who references person,
+create relationship if not exists scan_seen_who (
+    person.scans -> scan[],
+    scan.seen_who_person -> person
+);
 
-    seen_license references vehicle
+create relationship if not exists scan_seen_license (
+    vehicle.scans -> scan[],
+    scan.seen_license_vehicle -> vehicle
 );

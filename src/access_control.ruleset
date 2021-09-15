@@ -11,7 +11,7 @@ using namespace gaia::access_control;
 //
 ruleset access_control_ruleset
 {
-    OnInsert(scan)
+    on_insert(S:scan)
     {
         // A new scan is added
         //
@@ -33,7 +33,7 @@ ruleset access_control_ruleset
         //      person
         //      vehicle
         //
-        auto scan_row = scan_t::get(scan.gaia_id());
+        auto scan_row = scan_t::get(S.gaia_id());
         if (!scan_row.seen_who_person() && !scan_row.seen_license_vehicle())
         {
             auto stranger_row = helpers::insert_stranger(scan.face_signature);
@@ -49,13 +49,41 @@ ruleset access_control_ruleset
             using namespace enums::scan_table;
             switch (scan.scan_type)
             {
-                case e_scan_type::badge             : scan.badge_scan = true;           break;
-                case e_scan_type::vehicle_entering  : scan.vehicle_entering = true;     break;
-                case e_scan_type::vehicle_departing : scan.vehicle_departing = true;    break;
-                case e_scan_type::joining_wifi      : scan.joining_wifi = true;         break;
-                case e_scan_type::leaving_wifi      : scan.leaving_wifi = true;         break;
-                case e_scan_type::face              : scan.face_scan = true;            break;
-                case e_scan_type::leaving           : scan.leaving = true;              break;
+                case e_scan_type::badge:
+                {
+                    scan.badge_scan = true;
+                    break;
+                }
+                case e_scan_type::vehicle_entering:
+                {
+                    scan.vehicle_entering = true;
+                    break;
+                }
+                case e_scan_type::vehicle_departing:
+                {
+                    scan.vehicle_departing = true;
+                    break;
+                }
+                case e_scan_type::joining_wifi:
+                {
+                    scan.joining_wifi = true;
+                    break;
+                }
+                case e_scan_type::leaving_wifi:
+                {
+                    scan.leaving_wifi = true;
+                    break;
+                }
+                case e_scan_type::face:
+                {
+                    scan.face_scan = true;
+                    break;
+                }
+                case e_scan_type::leaving:
+                {
+                    scan.leaving = true;
+                    break;
+                }
             }
         }
     }
@@ -201,11 +229,11 @@ ruleset access_control_ruleset
             
             if (scan_t::get(scan.gaia_id()).seen_in_room())
             {
-                actions::not_this_room(person.person_id, room.name, building.name);
+                actions::not_this_room(person.person_id, scan->room.name, scan->room->building.name);
             }
             else
             {
-                actions::not_this_building(person.person_id, building.name);
+                actions::not_this_building(person.person_id, scan->building.name);
             }
         }
     }
@@ -220,15 +248,16 @@ ruleset access_control_ruleset
         {
             if (scan_t::get(scan.gaia_id()).seen_in_room())
             {
-                actions::no_entry_right_now(person.person_id, room.name, building.name);
+                actions::no_entry_right_now(person.person_id, scan->room.name, scan->room->building.name);
             }
             else
             {
-                actions::not_this_building(person.person_id, building.name);
+                actions::not_this_building(person.person_id, scan->building.name);
             }
         }
     }
 
+    on_change(S:scan.leaving)
     {
         // Rule for leaving scan - person leaving a building or a room.
         //
@@ -238,15 +267,16 @@ ruleset access_control_ruleset
         //      person.entered
         //      person.inside
         //
-        if (@scan.leaving)
+        if (S.leaving)
         {
-            auto seen_person = scan_t::get(scan.gaia_id()).seen_who_person();
+            auto seen_person = scan_t::get(S.gaia_id()).seen_who_person();
 
             if (seen_person.inside_room())
             {
                 helpers::disconnect_person_from_room(seen_person.gaia_id());
             }
-            else{
+            else
+            {
                 person.badged = false;
                 person.credentialed = false;
                 person.admissible = false;
