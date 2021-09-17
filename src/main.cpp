@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "gaia_access_control.h"
-#include "ui_messaging.hpp"
+#include "communication.hpp"
 #include "enums.hpp"
 #include "helpers.hpp"
 #include "json.hpp"
@@ -151,7 +151,7 @@ void update_ui()
         }
     }
 
-    ui_messaging::send(j.dump());
+    communication::publish_message("access_control_json", j.dump());
 
     gaia::db::commit_transaction();
 }
@@ -393,9 +393,34 @@ void add_scan(const json &j)
     gaia::db::commit_transaction();
 }
 
-void process_ui_message(const std::string &message)
+std::vector<std::string> split_topic(const std::string& topic)
 {
-    auto j = json::parse(message);
+    std::vector<std::string> result;
+    size_t left = 0;
+    size_t right = topic.find('/');
+    while (right != std::string::npos)
+    {
+        result.push_back(topic.substr(left, right - left));
+        left = right + 1;
+        right = topic.find('/', left);
+    }
+    result.push_back(topic.substr(left));
+    return result;
+}
+
+void message_callback(const std::string &topic, const std::string &payload)
+{
+    gaia_log::app().info("Recieved | {} : {}", topic, payload);
+
+    std::vector<std::string> topic_vector = split_topic(topic);
+
+    if (topic_vector.size() < 2)
+    {
+        gaia_log::app().error("Unexpected topic: {}", topic);
+        return;
+    }
+
+    /*auto j = json::parse(payload);
 
     if (j["database"] == "reset")
     {
@@ -413,27 +438,27 @@ void process_ui_message(const std::string &message)
         helpers::set_time(j["time"]);
     }
 
-    update_ui();
+    update_ui();*/
+
+    gaia_log::app().info("topic: {} | payload: {}", topic, payload);
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-    std::cout << "Access Control application" << std::endl;
-
+    std::cout << "Access Control application (Ctrl+C to exit)" << std::endl;
     signal(SIGINT, exit_callback);
-
     gaia::system::initialize();
+
+    if (!communication::init(argc, argv))
+    {
+        exit_callback(EXIT_FAILURE);
+    }
 
     gaia::db::begin_transaction();
     clear_all_tables();
     populate_all_tables();
     gaia::db::commit_transaction();
 
-    ui_messaging::init(process_ui_message);
-
-    std::cout << "System ready (Ctrl+C to exit)." << std::endl;
-
-    std::string user_input_line = "";
-    while (true);
+    communication::connect(message_callback);
     exit_callback(EXIT_SUCCESS);
 }

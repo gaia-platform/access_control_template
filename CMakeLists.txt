@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(/opt/gaia/cmake/gaia.cmake)
 
 find_package(Threads REQUIRED)
+find_package(aws-crt-cpp REQUIRED)
 
 add_compile_options(-stdlib=libc++)
 add_link_options(-stdlib=libc++)
@@ -28,7 +29,7 @@ add_executable(access_control
   src/main.cpp
   src/helpers.cpp
   src/actions.cpp
-  src/ui_messaging.cpp
+  src/communication.cpp
 )
 
 target_add_gaia_generated_sources(access_control)
@@ -45,4 +46,5 @@ target_link_libraries(access_control
   PRIVATE
     gaia
     Threads::Threads
+    AWS::aws-crt-cpp
 )
