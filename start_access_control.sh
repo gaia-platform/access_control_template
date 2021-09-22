@@ -9,14 +9,17 @@ if [[ -z "${REMOTE_CLIENT_ID}" ]]; then
 else
     if [[ -z "${COGNITO_ID}" ]]; then
         echo "Retrieving Cognito identity..."
-        COGNITO_ID=$(aws cognito-identity get-id --identity-pool-id $poolid --region $region --output text)
+        export COGNITO_ID=$(aws cognito-identity get-id --identity-pool-id $poolid --region $region --output text)
     fi
 
-    id_request=$(aws cognito-identity get-credentials-for-identity --identity-id "$COGNITO_ID" --region $region)
+    if [[ -z "${AWS_EXPIRATION_TIME}" ]] || [[ $(date +%s) -ge "${AWS_EXPIRATION_TIME}" ]]; then
+        echo "Retrieving AWS Credentials..."
+        id_request=$(aws cognito-identity get-credentials-for-identity --identity-id "$COGNITO_ID" --region $region)
+        export AWS_ACCESS_KEY_ID=$(echo "$id_request" | jq -r '.Credentials.AccessKeyId')
+        export AWS_SECRET_ACCESS_KEY=$(echo "$id_request" | jq -r '.Credentials.SecretKey')
+        export AWS_SESSION_TOKEN=$(echo "$id_request" | jq -r '.Credentials.SessionToken')
+        export AWS_EXPIRATION_TIME=$(echo "$id_request" | jq -r '.Credentials.Expiration')
+    fi
 
-    export AWS_ACCESS_KEY_ID=$(echo "$id_request" | jq -r '.Credentials.AccessKeyId')
-    export AWS_SECRET_ACCESS_KEY=$(echo "$id_request" | jq -r '.Credentials.SecretKey')
-    export AWS_SESSION_TOKEN=$(echo "$id_request" | jq -r '.Credentials.SessionToken')
-
-    $(dirname "$0")/build/access_control --endpoint $endpoint --region $region --remote-client-id "$REMOTE_CLIENT_ID"
+    ./access_control --endpoint $endpoint --region $region --remote-client-id "$REMOTE_CLIENT_ID"
 fi

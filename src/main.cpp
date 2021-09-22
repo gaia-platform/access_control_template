@@ -125,6 +125,25 @@ json get_building_json(building_t building)
     return j;
 }
 
+json get_init_json()
+{
+    json j;
+    
+    j["buildings"] = json::array();
+    for (const auto& building : building_t::list())
+    {
+        j["buildings"].push_back(get_building_json(building));
+    }
+
+    j["people"] = json::array();
+    for (const auto& person : person_t::list())
+    {
+        j["people"].push_back(get_person_json(person));
+    }
+
+    return j;
+}
+
 void update_ui()
 {
     gaia::db::begin_transaction();
@@ -443,9 +462,10 @@ void message_callback(const std::string &topic, const std::string &payload)
     gaia_log::app().info("topic: {} | payload: {}", topic, payload);
 }
 
+const std::string c_init_topic = "init";
+
 int main(int argc, char* argv[])
 {
-    std::cout << "Access Control application (Ctrl+C to exit)" << std::endl;
     signal(SIGINT, exit_callback);
     gaia::system::initialize();
 
@@ -457,6 +477,7 @@ int main(int argc, char* argv[])
     gaia::db::begin_transaction();
     clear_all_tables();
     populate_all_tables();
+    communication::publish_message(c_init_topic, get_init_json().dump());
     gaia::db::commit_transaction();
 
     communication::connect(message_callback);
