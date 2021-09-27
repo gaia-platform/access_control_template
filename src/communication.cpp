@@ -123,7 +123,7 @@ bool init(int argc, char* argv[])
     return true;
 }
 
-void connect(message_callback_t callback)
+void connect(message_callback_t callback, const std::string& init_msg)
 {
     string client_id = get_uuid();
     string subscribe_topic = client_id + "/#";
@@ -273,6 +273,7 @@ void connect(message_callback_t callback)
         g_connection->Subscribe(subscribe_topic.c_str(), AWS_MQTT_QOS_AT_LEAST_ONCE, on_message, on_sub_ack);
         subscribe_finished_promise.get_future().wait();
         publish_message("appUUID", client_id);
+        publish_message("init", init_msg);
 
         String input;
         gaia_log::app().info("Press 'enter' to exit this program.");

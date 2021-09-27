@@ -21,7 +21,7 @@ typedef void (*message_callback_t)(const std::string& topic, const std::string& 
 std::string get_uuid();
 
 bool init(int argc, char* argv[]);
-void connect(message_callback_t callback);
+void connect(message_callback_t callback, const std::string& init_msg);
 void publish_message(const std::string& topic, const std::string& payload);
 
 } // namespace communication

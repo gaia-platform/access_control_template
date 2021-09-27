@@ -462,8 +462,6 @@ void message_callback(const std::string &topic, const std::string &payload)
     gaia_log::app().info("topic: {} | payload: {}", topic, payload);
 }
 
-const std::string c_init_topic = "init";
-
 int main(int argc, char* argv[])
 {
     signal(SIGINT, exit_callback);
@@ -477,9 +475,9 @@ int main(int argc, char* argv[])
     gaia::db::begin_transaction();
     clear_all_tables();
     populate_all_tables();
-    communication::publish_message(c_init_topic, get_init_json().dump());
+    std::string init_msg = get_init_json().dump();
     gaia::db::commit_transaction();
 
-    communication::connect(message_callback);
+    communication::connect(message_callback, init_msg);
     exit_callback(EXIT_SUCCESS);
 }
