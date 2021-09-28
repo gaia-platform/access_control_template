@@ -429,8 +429,6 @@ std::vector<std::string> split_topic(const std::string& topic)
 
 void message_callback(const std::string &topic, const std::string &payload)
 {
-    gaia_log::app().info("Recieved | {} : {}", topic, payload);
-
     std::vector<std::string> topic_vector = split_topic(topic);
 
     if (topic_vector.size() < 2)
