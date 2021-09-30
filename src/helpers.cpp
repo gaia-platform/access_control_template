@@ -8,6 +8,22 @@
 
 using namespace gaia::access_control;
 
+std::string helpers::scan_type_string(enums::scan_table::e_scan_type scan_type)
+{
+    using namespace enums::scan_table;
+    switch (scan_type)
+    {
+        case badge : return "badge";
+        case vehicle_entering : return "vehicle_entering";
+        case vehicle_departing : return "vehicle_departing";
+        case joining_wifi : return "joining_wifi";
+        case leaving_wifi : return "leaving_wifi";
+        case face : return "face";
+        case leaving : return "leaving";
+        default : return "";
+    }
+}
+
 void helpers::park_in_building(
     gaia::common::gaia_id_t person_id,
     gaia::common::gaia_id_t building_id)
@@ -175,6 +191,18 @@ void helpers::insert_stranger_vehicle(
     vehicle_w.license = license;
     // Connect the vehicle to its owner, the stranger.
     stranger.vehicles().insert(vehicle_w.insert_row());
+}
+
+void helpers::send_updated_scan(gaia::access_control::person_t person,
+    uint8_t scan_type)
+{
+    auto scan_type_enum = static_cast<enums::scan_table::e_scan_type>(scan_type);
+    if (scan_type_enum != enums::scan_table::face && scan_type_enum != enums::scan_table::leaving)
+    {
+        std::string topic = "access_control/" + std::to_string(person.person_id()) + "/scan";
+        std::string scan_type_str = helpers::scan_type_string(scan_type_enum);
+        communication::publish_message(topic, scan_type_str);
+    }
 }
 
 // Time-related helpers:

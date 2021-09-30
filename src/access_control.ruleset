@@ -88,6 +88,20 @@ ruleset access_control_ruleset
         }
     }
 
+    on_update(S:scan)
+    {
+        auto scan_row = scan_t::get(S.gaia_id());
+
+        if (scan_row.seen_who_person())
+        {
+            helpers::send_updated_scan(scan_row.seen_who_person(), S.scan_type);
+        }
+        else if (scan_row.seen_license_vehicle())
+        {
+            helpers::send_updated_scan(scan_row.seen_license_vehicle().owner(), S.scan_type);
+        }
+    }
+
     {
         // Check if non-stranger switped badge
         //
