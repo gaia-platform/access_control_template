@@ -6,7 +6,7 @@
 
 using namespace gaia::access_control;
 
-const std::string c_alert_topic = "alert";
+const std::string c_alert_topic = "access_control/alert";
 
 void actions::stranger_detected()
 {

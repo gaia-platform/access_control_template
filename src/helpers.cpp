@@ -3,7 +3,10 @@
 #include <random>
 #include <vector>
 
+#include "communication.hpp"
 #include "helpers.hpp"
+
+using namespace gaia::access_control;
 
 void helpers::park_in_building(
     gaia::common::gaia_id_t person_id,
@@ -92,6 +95,11 @@ void helpers::disconnect_person_from_room(gaia::common::gaia_id_t person_id)
     auto person = gaia::access_control::person_t::get(person_id);
     if (person.inside_room()) {
         person.inside_room().people_inside().remove(person);
+
+        std::string building_id = std::to_string(person.inside_room().building().building_id());
+        std::string topic = "access_control/" + std::to_string(person.person_id()) + "/move_to_building";
+        // Move the person back into the building but not a specific room.
+        communication::publish_message(topic, building_id);
     }
 }
 
@@ -100,6 +108,9 @@ void helpers::disconnect_person_from_building(gaia::common::gaia_id_t person_id)
     auto person = gaia::access_control::person_t::get(person_id);
     if (person.entered_building()) {
         person.entered_building().people_entered().remove(person);
+
+        std::string topic = "access_control/" + std::to_string(person.person_id()) + "/move_to_building";
+        communication::publish_message(topic, "");
     }
 }
 
@@ -130,10 +141,21 @@ void helpers::let_them_in(
     {
         disconnect_person_from_room(person_id);
         scan.seen_in_room().people_inside().insert(person);
+        
+        std::string building_and_room = std::to_string(scan.seen_at_building().building_id());
+        building_and_room.append(",");
+        building_and_room.append(std::to_string(scan.seen_in_room().room_id()));
+
+        std::string topic = "access_control/" + std::to_string(person.person_id()) + "/move_to_room";
+        communication::publish_message(topic, building_and_room);
     }
     if (scan.seen_at_building())
     {
         scan.seen_at_building().people_entered().insert(person);
+
+        std::string building_id = std::to_string(scan.seen_at_building().building_id());
+        std::string topic = "access_control/" + std::to_string(person.person_id()) + "/move_to_building";
+        communication::publish_message(topic, building_id);
     }
 }
 

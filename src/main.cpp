@@ -430,34 +430,38 @@ std::vector<std::string> split_topic(const std::string& topic)
 void message_callback(const std::string &topic, const std::string &payload)
 {
     std::vector<std::string> topic_vector = split_topic(topic);
-
-    if (topic_vector.size() < 2)
+    if (gaia_log::app().is_debug_enabled())
+    {
+        gaia_log::app().debug("Received topic: {} | payload: {}", topic, payload);
+    }
+    
+    if (topic_vector.size() < 2 || topic_vector.at(1) != "access_control")
     {
         gaia_log::app().error("Unexpected topic: {}", topic);
         return;
     }
 
-    /*auto j = json::parse(payload);
-
-    if (j["database"] == "reset")
+    if (topic_vector.at(2) == "time")
     {
-        gaia::db::begin_transaction();
-        clear_all_tables();
-        populate_all_tables();
-        gaia::db::commit_transaction();
+        int64_t time = std::stoll(payload);
+        if (time < 0)
+        {
+            gaia_log::app().error("Tried to set a negative time: {}", time);
+        }
+        else
+        {
+            helpers::set_time(time);
+        }
     }
-    else if (j.contains("scan"))
+    else if (topic_vector.at(2) == "scan")
     {
-        add_scan(j["scan"]);
+        add_scan(json::parse(payload));
     }
-    else if (j.contains("time"))
+    else
     {
-        helpers::set_time(j["time"]);
+        gaia_log::app().error("Unexpected topic: {}", topic);
+        return;
     }
-
-    update_ui();*/
-
-    gaia_log::app().info("topic: {} | payload: {}", topic, payload);
 }
 
 int main(int argc, char* argv[])
