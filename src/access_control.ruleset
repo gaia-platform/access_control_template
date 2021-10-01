@@ -90,6 +90,11 @@ ruleset access_control_ruleset
 
     on_update(S:scan)
     {
+        // A scan row is updated and that update must be forwarded to the UI
+        //
+        // Reacts to:
+        //      updated scan record
+        //
         auto scan_row = scan_t::get(S.gaia_id());
 
         if (scan_row.seen_who_person())
