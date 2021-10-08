@@ -169,9 +169,12 @@ void helpers::let_them_in(
     {
         scan.seen_at_building().people_entered().insert(person);
 
-        std::string building_id = std::to_string(scan.seen_at_building().building_id());
-        std::string topic = "access_control/" + std::to_string(person.person_id()) + "/move_to_building";
-        communication::publish_message(topic, building_id);
+        if(!scan.seen_in_room())
+        {
+            std::string building_id = std::to_string(scan.seen_at_building().building_id());
+            std::string topic = "access_control/" + std::to_string(person.person_id()) + "/move_to_building";
+            communication::publish_message(topic, building_id);
+        }
     }
 }
 
