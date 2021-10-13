@@ -110,10 +110,11 @@ void helpers::disconnect_person_from_room(gaia::common::gaia_id_t person_id)
 {
     auto person = gaia::access_control::person_t::get(person_id);
     if (person.inside_room()) {
-        person.inside_room().people_inside().remove(person);
-
         std::string building_id = std::to_string(person.inside_room().building().building_id());
         std::string topic = "access_control/" + std::to_string(person.person_id()) + "/move_to_building";
+
+        person.inside_room().people_inside().remove(person);
+
         // Move the person back into the building but not a specific room.
         communication::publish_message(topic, building_id);
     }

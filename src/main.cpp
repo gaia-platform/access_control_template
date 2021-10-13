@@ -200,7 +200,7 @@ registration_t add_registration(person_t person, event_t occasion)
 }
 
 room_t add_room(uint64_t room_id, std::string room_name,
-              uint32_t capacity, building_t headquarters)
+              uint32_t capacity, building_t building)
 {
     auto room_w = room_writer();
     room_w.room_id = room_id;
@@ -208,8 +208,7 @@ room_t add_room(uint64_t room_id, std::string room_name,
     room_w.capacity = capacity;
     room_t new_room = room_t::get(room_w.insert_row());
 
-    // Connect the room to the "headquarters" building
-    headquarters.rooms().insert(new_room);
+    building.rooms().insert(new_room);
 
     return new_room;
 }
