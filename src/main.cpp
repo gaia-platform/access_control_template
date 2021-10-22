@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "gaia_access_control.h"
-#include "ui_messaging.hpp"
+#include "communication.hpp"
 #include "enums.hpp"
 #include "helpers.hpp"
 #include "json.hpp"
@@ -125,6 +125,25 @@ json get_building_json(building_t building)
     return j;
 }
 
+json get_init_json()
+{
+    json j;
+    
+    j["buildings"] = json::array();
+    for (const auto& building : building_t::list())
+    {
+        j["buildings"].push_back(get_building_json(building));
+    }
+
+    j["people"] = json::array();
+    for (const auto& person : person_t::list())
+    {
+        j["people"].push_back(get_person_json(person));
+    }
+
+    return j;
+}
+
 void update_ui()
 {
     gaia::db::begin_transaction();
@@ -151,7 +170,7 @@ void update_ui()
         }
     }
 
-    ui_messaging::send(j.dump());
+    communication::publish_message("access_control_json", j.dump());
 
     gaia::db::commit_transaction();
 }
@@ -181,7 +200,7 @@ registration_t add_registration(person_t person, event_t occasion)
 }
 
 room_t add_room(uint64_t room_id, std::string room_name,
-              uint32_t capacity, building_t headquarters)
+              uint32_t capacity, building_t building)
 {
     auto room_w = room_writer();
     room_w.room_id = room_id;
@@ -189,8 +208,7 @@ room_t add_room(uint64_t room_id, std::string room_name,
     room_w.capacity = capacity;
     room_t new_room = room_t::get(room_w.insert_row());
 
-    // Connect the room to the "headquarters" building
-    headquarters.rooms().insert(new_room);
+    building.rooms().insert(new_room);
 
     return new_room;
 }
@@ -393,47 +411,74 @@ void add_scan(const json &j)
     gaia::db::commit_transaction();
 }
 
-void process_ui_message(const std::string &message)
+std::vector<std::string> split_topic(const std::string& topic)
 {
-    auto j = json::parse(message);
-
-    if (j["database"] == "reset")
+    std::vector<std::string> result;
+    size_t left = 0;
+    size_t right = topic.find('/');
+    while (right != std::string::npos)
     {
-        gaia::db::begin_transaction();
-        clear_all_tables();
-        populate_all_tables();
-        gaia::db::commit_transaction();
+        result.push_back(topic.substr(left, right - left));
+        left = right + 1;
+        right = topic.find('/', left);
     }
-    else if (j.contains("scan"))
-    {
-        add_scan(j["scan"]);
-    }
-    else if (j.contains("time"))
-    {
-        helpers::set_time(j["time"]);
-    }
-
-    update_ui();
+    result.push_back(topic.substr(left));
+    return result;
 }
 
-int main()
+void message_callback(const std::string &topic, const std::string &payload)
 {
-    std::cout << "Access Control application" << std::endl;
+    std::vector<std::string> topic_vector = split_topic(topic);
+    if (gaia_log::app().is_debug_enabled())
+    {
+        gaia_log::app().debug("Received topic: {} | payload: {}", topic, payload);
+    }
+    
+    if (topic_vector.size() < 2 || topic_vector.at(1) != "access_control")
+    {
+        gaia_log::app().error("Unexpected topic: {}", topic);
+        return;
+    }
 
+    if (topic_vector.at(2) == "time")
+    {
+        int64_t time = std::stoll(payload);
+        if (time < 0)
+        {
+            gaia_log::app().error("Tried to set a negative time: {}", time);
+        }
+        else
+        {
+            helpers::set_time(time);
+        }
+    }
+    else if (topic_vector.at(2) == "scan")
+    {
+        add_scan(json::parse(payload));
+    }
+    else
+    {
+        gaia_log::app().error("Unexpected topic: {}", topic);
+        return;
+    }
+}
+
+int main(int argc, char* argv[])
+{
     signal(SIGINT, exit_callback);
-
     gaia::system::initialize();
+
+    if (!communication::init(argc, argv))
+    {
+        exit_callback(EXIT_FAILURE);
+    }
 
     gaia::db::begin_transaction();
     clear_all_tables();
     populate_all_tables();
+    std::string init_msg = get_init_json().dump();
     gaia::db::commit_transaction();
 
-    ui_messaging::init(process_ui_message);
-
-    std::cout << "System ready (Ctrl+C to exit)." << std::endl;
-
-    std::string user_input_line = "";
-    while (true);
+    communication::connect(message_callback, init_msg);
     exit_callback(EXIT_SUCCESS);
 }

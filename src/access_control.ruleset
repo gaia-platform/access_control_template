@@ -2,7 +2,6 @@
 
 #include "actions.hpp"
 #include "enums.hpp"
-#include "gaia_access_control.h"
 #include "helpers.hpp"
 
 using namespace gaia::access_control;
@@ -85,6 +84,25 @@ ruleset access_control_ruleset
                     break;
                 }
             }
+        }
+    }
+
+    on_update(S:scan)
+    {
+        // A scan row is updated and that update must be forwarded to the UI
+        //
+        // Reacts to:
+        //      updated scan record
+        //
+        auto scan_row = scan_t::get(S.gaia_id());
+
+        if (scan_row.seen_who_person())
+        {
+            helpers::send_updated_scan(scan_row.seen_who_person(), S.scan_type);
+        }
+        else if (scan_row.seen_license_vehicle())
+        {
+            helpers::send_updated_scan(scan_row.seen_license_vehicle().owner(), S.scan_type);
         }
     }
 

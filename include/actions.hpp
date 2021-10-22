@@ -2,8 +2,6 @@
 
 #include <string>
 
-#include "gaia_access_control.h"
-
 namespace actions
 {
 

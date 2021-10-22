@@ -3,7 +3,26 @@
 #include <random>
 #include <vector>
 
+#include "communication.hpp"
 #include "helpers.hpp"
+
+using namespace gaia::access_control;
+
+std::string helpers::scan_type_string(enums::scan_table::e_scan_type scan_type)
+{
+    using namespace enums::scan_table;
+    switch (scan_type)
+    {
+        case badge : return "badge";
+        case vehicle_entering : return "vehicle_entering";
+        case vehicle_departing : return "vehicle_departing";
+        case joining_wifi : return "joining_wifi";
+        case leaving_wifi : return "leaving_wifi";
+        case face : return "face";
+        case leaving : return "leaving";
+        default : return "";
+    }
+}
 
 void helpers::park_in_building(
     gaia::common::gaia_id_t person_id,
@@ -91,7 +110,13 @@ void helpers::disconnect_person_from_room(gaia::common::gaia_id_t person_id)
 {
     auto person = gaia::access_control::person_t::get(person_id);
     if (person.inside_room()) {
+        std::string building_id = std::to_string(person.inside_room().building().building_id());
+        std::string topic = "access_control/" + std::to_string(person.person_id()) + "/move_to_building";
+
         person.inside_room().people_inside().remove(person);
+
+        // Move the person back into the building but not a specific room.
+        communication::publish_message(topic, building_id);
     }
 }
 
@@ -100,6 +125,9 @@ void helpers::disconnect_person_from_building(gaia::common::gaia_id_t person_id)
     auto person = gaia::access_control::person_t::get(person_id);
     if (person.entered_building()) {
         person.entered_building().people_entered().remove(person);
+
+        std::string topic = "access_control/" + std::to_string(person.person_id()) + "/move_to_building";
+        communication::publish_message(topic, "");
     }
 }
 
@@ -130,10 +158,24 @@ void helpers::let_them_in(
     {
         disconnect_person_from_room(person_id);
         scan.seen_in_room().people_inside().insert(person);
+        
+        std::string building_and_room = std::to_string(scan.seen_at_building().building_id());
+        building_and_room.append(",");
+        building_and_room.append(std::to_string(scan.seen_in_room().room_id()));
+
+        std::string topic = "access_control/" + std::to_string(person.person_id()) + "/move_to_room";
+        communication::publish_message(topic, building_and_room);
     }
     if (scan.seen_at_building())
     {
         scan.seen_at_building().people_entered().insert(person);
+
+        if(!scan.seen_in_room())
+        {
+            std::string building_id = std::to_string(scan.seen_at_building().building_id());
+            std::string topic = "access_control/" + std::to_string(person.person_id()) + "/move_to_building";
+            communication::publish_message(topic, building_id);
+        }
     }
 }
 
@@ -153,6 +195,18 @@ void helpers::insert_stranger_vehicle(
     vehicle_w.license = license;
     // Connect the vehicle to its owner, the stranger.
     stranger.vehicles().insert(vehicle_w.insert_row());
+}
+
+void helpers::send_updated_scan(gaia::access_control::person_t person,
+    uint8_t scan_type)
+{
+    auto scan_type_enum = static_cast<enums::scan_table::e_scan_type>(scan_type);
+    if (scan_type_enum != enums::scan_table::face && scan_type_enum != enums::scan_table::leaving)
+    {
+        std::string topic = "access_control/" + std::to_string(person.person_id()) + "/scan";
+        std::string scan_type_str = helpers::scan_type_string(scan_type_enum);
+        communication::publish_message(topic, scan_type_str);
+    }
 }
 
 // Time-related helpers:

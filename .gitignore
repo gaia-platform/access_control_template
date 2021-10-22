@@ -36,3 +36,9 @@ build/
 
 # VS Code settings
 .vscode/
+
+# Gaia logs
+logs/
+
+# AWS IoT SDK repository
+aws-iot-device-sdk-cpp-v2/

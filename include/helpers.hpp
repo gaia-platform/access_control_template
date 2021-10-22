@@ -4,8 +4,12 @@
 
 #include "gaia_access_control.h"
 
+#include "enums.hpp"
+
 namespace helpers
 {
+
+std::string scan_type_string(enums::scan_table::e_scan_type scan_type);
 
 void park_in_building(
     gaia::common::gaia_id_t person_id,
@@ -38,6 +42,9 @@ gaia::access_control::person_t insert_stranger(std::string face_signature);
 
 void insert_stranger_vehicle(
     gaia::access_control::person_t stranger, std::string license);
+
+void send_updated_scan(gaia::access_control::person_t person,
+    uint8_t scan_type);
 
 // Time-related helpers:
 
