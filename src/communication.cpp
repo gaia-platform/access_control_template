@@ -276,7 +276,6 @@ void connect(message_callback_t callback, const std::string& init_msg)
         publish_message("access_control/init", init_msg);
 
         String input;
-        gaia_log::app().info("Press 'enter' to exit this program.");
         gaia_log::app().info("Waiting to connect to the Sandbox...");
         std::getline(std::cin, input);
 
