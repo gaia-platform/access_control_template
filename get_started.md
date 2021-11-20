@@ -38,9 +38,7 @@ For the best user experience, keep the Sandbox's browser maximized to full-scree
 
 The Sandbox contains a complete sample for you to examine and modify.
 
-To build the sample, select the **Build** button located above the simulator window. The state of the button changes depending on what point in the build/run cycle that you are in.
-
-While the sample builds, the **Output** window displays the progress of the build. **It can take several minutes** to build the sample.
+While the sample builds, the **Output** window displays the progress of the build. **It can take several minutes** to build the sample. When the sample has completed building, select the **Run** button. 
 
 If you press **Build** or **Run**, you will see progress messages in the **Output** tab.
 
