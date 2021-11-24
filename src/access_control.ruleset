@@ -12,7 +12,7 @@ ruleset access_control_ruleset
     // A new scan is added.
     //
     // Reacts to:
-    //      new scan record
+    //      A new row in the scan table.
     // Changes:
     //      scan.badge_scan
     //      scan.vehicle_entering
@@ -90,7 +90,7 @@ ruleset access_control_ruleset
     // A scan row is updated and that update must be sent to the UI.
     //
     // Reacts to:
-    //      updated scan record
+    //      An updated row in the scan table.
     //
     on_update(S:scan)
     {
@@ -120,7 +120,7 @@ ruleset access_control_ruleset
         }
     }
 
-    // Check if someone is joining a Wifi network.
+    // Handles when someone is joining a Wifi network.
     //
     // Reacts to:
     //      scan.joining_wifi
@@ -134,7 +134,7 @@ ruleset access_control_ruleset
         }
     }
 
-    // Check if someone is leaving a Wifi network.
+    // Handles when someone leaves a Wifi network.
     //
     // Reacts to:
     //      scan.leaving_wifi
@@ -176,7 +176,7 @@ ruleset access_control_ruleset
         }
     }
 
-    // Somebody scanned their face but lacks credentials.
+    // Handles when a person scans their face but lacks proper credentials.
     //
     // Reacts to:
     //      scan.face_scan
@@ -211,7 +211,7 @@ ruleset access_control_ruleset
         }
     }
 
-    // Face scans for employees who are allowed in a room/building.
+    // Handles face scans for employees who are currently admissible to a building or room.
     //
     // Reacts to: 
     //      scan.face_scan
@@ -226,7 +226,7 @@ ruleset access_control_ruleset
         }
     }
 
-    // Face scans for visitors who may have ongoing events in a room/building.
+    // Handles face scans for visitors who have ongoing events in a room/building.
     //
     // Reacts to: 
     //      scan.face_scan
@@ -257,7 +257,7 @@ ruleset access_control_ruleset
         }
     }
 
-    // Face scans for credentialed but inadmissible people.
+// Handles face scans for people who are credentialed but are currently inadmissible.
     //
     // Reacts to: 
     //      scan.face_scan
