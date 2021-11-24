@@ -106,7 +106,7 @@ ruleset access_control_ruleset
         }
     }
 
-    // Check if a non-stranger swiped their badge.
+    // Handles when someone swipes their badge.
     //
     // Reacts to:
     //      scan.badge_scan
