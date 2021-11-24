@@ -87,7 +87,7 @@ ruleset access_control_ruleset
         }
     }
 
-    // A scan row is updated and that update must be sent to the UI.
+    // Handles when a row is updated and that update must be sent to the UI.
     //
     // Reacts to:
     //      An updated row in the scan table.
@@ -162,7 +162,7 @@ ruleset access_control_ruleset
         }
     }
 
-    // Check if a vehicle is departing from a parking lot.
+    // Handles a vehicle departing from a parking lot.
     //
     // Reacts to:
     //      scan.vehicle_departing
@@ -276,7 +276,7 @@ ruleset access_control_ruleset
         }
     }
 
-    // Scans for people leaving rooms/buildings.
+    // Handles people leaving rooms/buildings.
     //
     // Reacts to: 
     //      scan.leaving
