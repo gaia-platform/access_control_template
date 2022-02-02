@@ -9,12 +9,13 @@ include(/opt/gaia/cmake/gaia.cmake)
 
 find_package(Threads REQUIRED)
 
-add_compile_options(-stdlib=libc++)
-add_link_options(-stdlib=libc++)
 add_compile_options(-g)
 
 # Generate C++ headers from the .ddl schema file.
-process_schema(DDL_FILE ${PROJECT_SOURCE_DIR}/src/access_control.ddl)
+process_schema(
+  DDL_FILE ${PROJECT_SOURCE_DIR}/src/access_control.ddl
+  DATABASE_NAME "access_control"
+)
 
 # Translate the declarative .ruleset file into a C++ source file.
 translate_ruleset(
